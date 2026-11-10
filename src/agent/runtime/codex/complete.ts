@@ -47,7 +47,8 @@ export async function codexComplete(req: CompletionRequest, deps: { readonly con
       ephemeral: true,
       approvalPolicy: 'never',
       baseInstructions: req.system,
-      config: { ...confined.config, ...RUN_FEATURES_OFF, ...(mounted ? mcpConfig(mounted.servers) : {}) },
+      // Tool-free Linux calls cannot read their folder, including project instructions.
+      config: { ...confined.config, ...RUN_FEATURES_OFF, ...(process.platform === 'linux' && !req.tools?.length ? { project_doc_max_bytes: 0 } : {}), ...(mounted ? mcpConfig(mounted.servers) : {}) },
     });
     await rpc.request('turn/start', {
       threadId: thread.thread.id,
