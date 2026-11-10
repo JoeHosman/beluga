@@ -397,7 +397,9 @@ describe('workspaces work in parallel', () => {
       script: async (input) => {
         inFlight++;
         peak = Math.max(peak, inFlight);
-        await new Promise((r) => setTimeout(r, 150));
+        // Each run holds until another one runs beside it (or 3 s go by: they don't), not for a set
+        // time a busy machine can take just to start the next one.
+        await waitFor(() => peak >= 2, 3_000).catch(() => undefined);
         order.push(input.prompt);
         inFlight--;
         return 'ok';
@@ -411,7 +413,7 @@ describe('workspaces work in parallel', () => {
     kay.session.askOwnClaude('a1', `ws:${a.id}`);
     kay.session.askOwnClaude('a2', `ws:${a.id}`);
     kay.session.askOwnClaude('b1', `ws:${b.id}`);
-    await waitFor(() => order.length === 3, 4000);
+    await waitFor(() => order.length === 3, 10_000);
     expect(peak).toBe(2); // add-auth and new-hero side by side
     expect(order.indexOf('a1')).toBeLessThan(order.indexOf('a2')); // same workspace stays in order
   });
